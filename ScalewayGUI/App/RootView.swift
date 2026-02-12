@@ -30,7 +30,10 @@ struct RootView: View {
         List(selection: $store.selectedSidebarItem) {
             Section {
                 ForEach(store.accounts) { account in
-                    AccountRow(account: account)
+                    AccountRow(
+                        account: account,
+                        isActive: store.selectedAccount?.id == account.id
+                    )
                         .tag(SidebarItem.account(account.id))
                         .contextMenu {
                             Button("Delete Account", role: .destructive) {

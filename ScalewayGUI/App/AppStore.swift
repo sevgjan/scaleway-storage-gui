@@ -38,6 +38,13 @@ final class AppStore {
         do {
             accounts = try accountStore.load()
             selectedAccount = accounts.first
+            selectedSidebarItem = selectedAccount.map { .account($0.id) }
+
+            if selectedAccount != nil {
+                Task { @MainActor in
+                    await refreshBucketsForSelectedAccount()
+                }
+            }
         } catch {
             bannerMessage = "Failed to load accounts."
             logger.error("Failed loading accounts: \(error.localizedDescription, privacy: .public)")
@@ -110,6 +117,8 @@ final class AppStore {
             objectSearchQuery = ""
             isLoadingBucketObjects = false
             loadingBucketName = nil
+            buckets = []
+            await refreshBucketsForSelectedAccount()
         case .bucket(let bucketName):
             selectedBucketName = bucketName
             currentPrefix = ""

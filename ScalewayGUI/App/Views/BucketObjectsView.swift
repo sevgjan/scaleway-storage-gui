@@ -45,10 +45,22 @@ struct BucketObjectsView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ObjectCellButtonStyle())
             }
             .listStyle(.inset)
             .scrollContentBackground(.hidden)
         }
+    }
+}
+
+private struct ObjectCellButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(configuration.isPressed ? Color.accentColor.opacity(0.16) : Color.clear)
+            )
     }
 }
