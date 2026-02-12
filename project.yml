@@ -1,0 +1,42 @@
+name: ScalewayGUI
+options:
+  minimumXcodeGenVersion: 2.44.0
+  createIntermediateGroups: false
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    MACOSX_DEPLOYMENT_TARGET: 14.0
+packages:
+  aws-sdk-swift:
+    url: https://github.com/awslabs/aws-sdk-swift.git
+    from: 1.7.0
+targets:
+  ScalewayGUI:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: ScalewayGUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.scaleway.gui
+        PRODUCT_NAME: ScalewayGUI
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_ALLOWED: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: ScalewayGUI
+        INFOPLIST_KEY_NSPrincipalClass: NSApplication
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+    dependencies:
+      - package: aws-sdk-swift
+        product: AWSS3
+      - package: aws-sdk-swift
+        product: AWSSDKIdentity
+  ScalewayGUITests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: ScalewayGUITests
+    dependencies:
+      - target: ScalewayGUI

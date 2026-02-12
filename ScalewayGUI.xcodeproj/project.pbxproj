@@ -1,0 +1,445 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		16B7CCE02F3DB7CF002698F3 /* AWSS3 in Frameworks */ = {isa = PBXBuildFile; productRef = 16B7CCDF2F3DB7CF002698F3 /* AWSS3 */; };
+		16B7CCE22F3DB7CF002698F3 /* AWSSDKIdentity in Frameworks */ = {isa = PBXBuildFile; productRef = 16B7CCE12F3DB7CF002698F3 /* AWSSDKIdentity */; };
+		16B7CCE42F3DB7CF002698F3 /* AWSSDKIdentityAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 16B7CCE32F3DB7CF002698F3 /* AWSSDKIdentityAPI */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B2596D82FC2E9A50C00E07AA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 93514CBCFC1018F17EF32BFF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1C37913763426762DC5CBA1A;
+			remoteInfo = ScalewayGUI;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		4FAC8386FE6B33FFE968657D /* ScalewayGUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScalewayGUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD8C7D9A583A367EE068EEB1 /* ScalewayGUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScalewayGUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A10000000000000000000001 /* ScalewayGUI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ScalewayGUI; sourceTree = "<group>"; };
+		A10000000000000000000002 /* ScalewayGUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ScalewayGUITests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		335B03A9A23D881B35930D66 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				16B7CCE42F3DB7CF002698F3 /* AWSSDKIdentityAPI in Frameworks */,
+				16B7CCE02F3DB7CF002698F3 /* AWSS3 in Frameworks */,
+				16B7CCE22F3DB7CF002698F3 /* AWSSDKIdentity in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A713BDFF9A753C9BD6507C7B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4FAC8386FE6B33FFE968657D /* ScalewayGUI.app */,
+				BD8C7D9A583A367EE068EEB1 /* ScalewayGUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C75313E166BEB10696EC9532 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000001 /* ScalewayGUI */,
+				A10000000000000000000002 /* ScalewayGUITests */,
+				A713BDFF9A753C9BD6507C7B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		00588E497EFBD181253980F9 /* ScalewayGUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B3B0859E6EE0275582BCD8CC /* Build configuration list for PBXNativeTarget "ScalewayGUITests" */;
+			buildPhases = (
+				F51B53C44A2DE69B791D6F8D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				09673F7159F92B38ACC8E884 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000002 /* ScalewayGUITests */,
+			);
+			name = ScalewayGUITests;
+			packageProductDependencies = (
+			);
+			productName = ScalewayGUITests;
+			productReference = BD8C7D9A583A367EE068EEB1 /* ScalewayGUITests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		1C37913763426762DC5CBA1A /* ScalewayGUI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3EDBF113C03E4FB322E9A3BF /* Build configuration list for PBXNativeTarget "ScalewayGUI" */;
+			buildPhases = (
+				435D2705ED0320BEC7F46867 /* Sources */,
+				38869FE8096CA53A894D9037 /* Resources */,
+				335B03A9A23D881B35930D66 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000001 /* ScalewayGUI */,
+			);
+			name = ScalewayGUI;
+			packageProductDependencies = (
+				16B7CCDF2F3DB7CF002698F3 /* AWSS3 */,
+				16B7CCE12F3DB7CF002698F3 /* AWSSDKIdentity */,
+				16B7CCE32F3DB7CF002698F3 /* AWSSDKIdentityAPI */,
+			);
+			productName = ScalewayGUI;
+			productReference = 4FAC8386FE6B33FFE968657D /* ScalewayGUI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		93514CBCFC1018F17EF32BFF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					1C37913763426762DC5CBA1A = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = F6FE2F9CDD01765103EC2BCB /* Build configuration list for PBXProject "ScalewayGUI" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C75313E166BEB10696EC9532;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				16B7CCDE2F3DB7CF002698F3 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */,
+			);
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1C37913763426762DC5CBA1A /* ScalewayGUI */,
+				00588E497EFBD181253980F9 /* ScalewayGUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		38869FE8096CA53A894D9037 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		435D2705ED0320BEC7F46867 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F51B53C44A2DE69B791D6F8D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		09673F7159F92B38ACC8E884 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1C37913763426762DC5CBA1A /* ScalewayGUI */;
+			targetProxy = B2596D82FC2E9A50C00E07AA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		028F777F06528A88DBC42332 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = ScalewayGUI;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scaleway.gui;
+				PRODUCT_NAME = ScalewayGUI;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		321F65796A00D474A58E4E17 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScalewayGUI.app/Contents/MacOS/ScalewayGUI";
+			};
+			name = Debug;
+		};
+		33CB680AA2B46194F47D5DD6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		6A5A5EC982415DFE083C88F7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = ScalewayGUI;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scaleway.gui;
+				PRODUCT_NAME = ScalewayGUI;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C4EDF1A72F9A0375DAFB611D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScalewayGUI.app/Contents/MacOS/ScalewayGUI";
+			};
+			name = Release;
+		};
+		ED47D0D9DDFD2CC6A434EFE0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3EDBF113C03E4FB322E9A3BF /* Build configuration list for PBXNativeTarget "ScalewayGUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6A5A5EC982415DFE083C88F7 /* Debug */,
+				028F777F06528A88DBC42332 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B3B0859E6EE0275582BCD8CC /* Build configuration list for PBXNativeTarget "ScalewayGUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				321F65796A00D474A58E4E17 /* Debug */,
+				C4EDF1A72F9A0375DAFB611D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F6FE2F9CDD01765103EC2BCB /* Build configuration list for PBXProject "ScalewayGUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ED47D0D9DDFD2CC6A434EFE0 /* Debug */,
+				33CB680AA2B46194F47D5DD6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		16B7CCDE2F3DB7CF002698F3 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "git@github.com:awslabs/aws-sdk-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.53;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		16B7CCDF2F3DB7CF002698F3 /* AWSS3 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 16B7CCDE2F3DB7CF002698F3 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */;
+			productName = AWSS3;
+		};
+		16B7CCE12F3DB7CF002698F3 /* AWSSDKIdentity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 16B7CCDE2F3DB7CF002698F3 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */;
+			productName = AWSSDKIdentity;
+		};
+		16B7CCE32F3DB7CF002698F3 /* AWSSDKIdentityAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 16B7CCDE2F3DB7CF002698F3 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */;
+			productName = AWSSDKIdentityAPI;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 93514CBCFC1018F17EF32BFF /* Project object */;
+}
