@@ -5,43 +5,9 @@ struct RootView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $store.selectedSidebarItem) {
-                Section("Accounts") {
-                    ForEach(store.accounts) { account in
-                        Text(account.displayName)
-                            .tag(SidebarItem.account(account.id))
-                            .contextMenu {
-                                Button("Delete Account", role: .destructive) {
-                                    Task { @MainActor in
-                                        await store.deleteAccount(account)
-                                    }
-                                }
-                            }
-                    }
-                }
-
-                Section("Buckets") {
-                    ForEach(store.buckets) { bucket in
-                        HStack {
-                            Text(bucket.name)
-                            if store.isLoadingBucketObjects && store.loadingBucketName == bucket.name {
-                                Spacer()
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-                        }
-                        .tag(SidebarItem.bucket(bucket.name))
-                    }
-                }
-            }
-            .frame(minWidth: 220)
+            sidebar
         } detail: {
-            if store.selectedBucketName != nil {
-                BucketObjectsView(store: store)
-            } else {
-                AccountSetupView(store: store)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            detail
         }
         .navigationTitle("Scaleway Object Storage")
         .onChange(of: store.selectedSidebarItem) { _, _ in
@@ -49,39 +15,8 @@ struct RootView: View {
                 await store.handleSidebarSelectionChange()
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Refresh Buckets") {
-                    Task { @MainActor in
-                        await store.refreshBucketsForSelectedAccount()
-                    }
-                }
-                .disabled(store.selectedAccount == nil)
-            }
-            ToolbarItem(placement: .automatic) {
-                Button("Refresh Objects") {
-                    Task { @MainActor in
-                        await store.loadObjectsForSelectedBucket()
-                    }
-                }
-                .disabled(store.selectedBucketName == nil)
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if let banner = store.bannerMessage {
-                HStack {
-                    Spacer()
-                    Text(banner)
-                        .font(.callout)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.thinMaterial)
-                        .clipShape(Capsule())
-                    Spacer()
-                }
-                .padding(.bottom, 10)
-            }
-        }
+        .toolbar { toolbar }
+        .safeAreaInset(edge: .bottom) { toast }
         .task(id: store.bannerMessage) {
             guard let banner = store.bannerMessage else { return }
             try? await Task.sleep(for: .seconds(2.5))
@@ -90,96 +25,99 @@ struct RootView: View {
             }
         }
     }
-}
 
-private struct BucketObjectsView: View {
-    @Bindable var store: AppStore
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Bucket: " + (store.selectedBucketName ?? ""))
-                .font(.headline)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(Array(store.breadcrumbItems.enumerated()), id: \.element.id) { index, crumb in
-                        let isCurrent = index == store.breadcrumbItems.count - 1
-                        Button(crumb.title) {
-                            Task { @MainActor in
-                                await store.navigateToPrefix(crumb.prefix)
+    private var sidebar: some View {
+        List(selection: $store.selectedSidebarItem) {
+            Section {
+                ForEach(store.accounts) { account in
+                    AccountRow(account: account)
+                        .tag(SidebarItem.account(account.id))
+                        .contextMenu {
+                            Button("Delete Account", role: .destructive) {
+                                Task { @MainActor in
+                                    await store.deleteAccount(account)
+                                }
                             }
                         }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(isCurrent ? Color.accentColor.opacity(0.16) : Color.accentColor.opacity(0.45))
-                        )
-                        .foregroundStyle(isCurrent ? Color.accentColor : .primary)
-                        .fontWeight(isCurrent ? .semibold : .regular)
-
-                        if index < store.breadcrumbItems.count - 1 {
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
                 }
+            } header: {
+                Label("Accounts", systemImage: "person.2.fill")
             }
 
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search in current folder", text: $store.objectSearchQuery)
-                    .textFieldStyle(.plain)
-                if !store.objectSearchQuery.isEmpty {
-                    Button {
-                        store.objectSearchQuery = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
+            Section {
+                ForEach(store.buckets) { bucket in
+                    BucketRow(
+                        name: bucket.name,
+                        isLoading: store.isLoadingBucketObjects && store.loadingBucketName == bucket.name
+                    )
+                    .tag(SidebarItem.bucket(bucket.name))
                 }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.quaternary.opacity(0.4))
-            )
-
-            if store.filteredObjectItems.isEmpty {
-                ContentUnavailableView(
-                    "No Objects",
-                    systemImage: "tray",
-                    description: Text("This bucket appears empty at the current prefix.")
-                )
-            } else {
-                List(store.filteredObjectItems) { item in
-                    Button {
-                        Task { @MainActor in
-                            await store.openObjectItem(item)
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: item.isFolder ? "folder" : "doc")
-                                .foregroundStyle(item.isFolder ? .yellow : .secondary)
-                            Text(item.displayName)
-                            Spacer()
-                            if !item.isFolder {
-                                Text(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-                .listStyle(.inset)
+            } header: {
+                Label("Buckets", systemImage: "externaldrive.fill")
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(.ultraThinMaterial)
+        .frame(minWidth: 250)
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        if store.selectedBucketName != nil {
+            BucketObjectsView(store: store)
+        } else {
+            AccountSetupView(store: store)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    LinearGradient(
+                        colors: [.clear, .accentColor.opacity(0.25)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                Task { @MainActor in
+                    await store.refreshBucketsForSelectedAccount()
+                }
+            } label: {
+                Label("Refresh Buckets", systemImage: "arrow.clockwise")
+            }
+            .disabled(store.selectedAccount == nil)
+        }
+
+        ToolbarItem(placement: .automatic) {
+            Button {
+                Task { @MainActor in
+                    await store.loadObjectsForSelectedBucket()
+                }
+            } label: {
+                Label("Refresh Objects", systemImage: "arrow.clockwise.circle")
+            }
+            .disabled(store.selectedBucketName == nil)
+        }
+    }
+
+    @ViewBuilder
+    private var toast: some View {
+        if let banner = store.bannerMessage {
+            HStack {
+                Spacer()
+                Label(banner, systemImage: "info.circle.fill")
+                    .font(.callout)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(.thinMaterial)
+                    .clipShape(Capsule())
+                Spacer()
+            }
+            .padding(.bottom, 10)
+        }
     }
 }
