@@ -67,14 +67,26 @@ struct RootView: View {
                 .disabled(store.selectedBucketName == nil)
             }
         }
-        .overlay(alignment: .top) {
+        .safeAreaInset(edge: .bottom) {
             if let banner = store.bannerMessage {
-                Text(banner)
-                    .font(.callout)
-                    .padding(10)
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .padding(.top, 10)
+                HStack {
+                    Spacer()
+                    Text(banner)
+                        .font(.callout)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.thinMaterial)
+                        .clipShape(Capsule())
+                    Spacer()
+                }
+                .padding(.bottom, 10)
+            }
+        }
+        .task(id: store.bannerMessage) {
+            guard let banner = store.bannerMessage else { return }
+            try? await Task.sleep(for: .seconds(2.5))
+            if store.bannerMessage == banner {
+                store.bannerMessage = nil
             }
         }
     }
@@ -91,6 +103,7 @@ private struct BucketObjectsView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(Array(store.breadcrumbItems.enumerated()), id: \.element.id) { index, crumb in
+                        let isCurrent = index == store.breadcrumbItems.count - 1
                         Button(crumb.title) {
                             Task { @MainActor in
                                 await store.navigateToPrefix(crumb.prefix)
@@ -101,8 +114,10 @@ private struct BucketObjectsView: View {
                         .padding(.vertical, 4)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(.quaternary.opacity(0.45))
+                                .fill(isCurrent ? Color.accentColor.opacity(0.16) : Color.accentColor.opacity(0.45))
                         )
+                        .foregroundStyle(isCurrent ? Color.accentColor : .primary)
+                        .fontWeight(isCurrent ? .semibold : .regular)
 
                         if index < store.breadcrumbItems.count - 1 {
                             Image(systemName: "chevron.right")
