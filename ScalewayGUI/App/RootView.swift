@@ -69,13 +69,6 @@ struct RootView: View {
         } else {
             AccountSetupView(store: store)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(
-                    LinearGradient(
-                        colors: [.clear, .accentColor.opacity(0.25)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
         }
     }
 

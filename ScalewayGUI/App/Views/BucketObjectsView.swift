@@ -11,13 +11,6 @@ struct BucketObjectsView: View {
             content
         }
         .padding(16)
-        .background(
-            LinearGradient(
-                colors: [.clear, .accentColor.opacity(0.18)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
@@ -49,6 +42,8 @@ struct BucketObjectsView: View {
                     }
                 } label: {
                     ObjectRow(item: item)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -57,4 +52,3 @@ struct BucketObjectsView: View {
         }
     }
 }
-

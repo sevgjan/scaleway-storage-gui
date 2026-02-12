@@ -24,7 +24,7 @@ struct BreadcrumbBar: View {
                     .padding(.vertical, 5)
                     .background(
                         Capsule()
-                            .fill(isCurrent ? Color.accentColor.opacity(0.18) : Color.quaternary.opacity(0.55))
+                            .fill(isCurrent ? Color.accentColor.opacity(0.18) : Color.accentColor.opacity(0.55))
                     )
                     .foregroundStyle(isCurrent ? Color.accentColor : .primary)
                     .fontWeight(isCurrent ? .semibold : .regular)

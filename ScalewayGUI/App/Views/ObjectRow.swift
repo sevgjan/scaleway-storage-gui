@@ -23,10 +23,6 @@ struct ObjectRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayName)
                     .lineLimit(1)
-                Text(item.key)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
 
             Spacer()
