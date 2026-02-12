@@ -52,6 +52,67 @@ final class S3StorageClient: StorageClient {
         }
     }
 
+    func listObjects(bucket: String, prefix: String?, delimiter: String?) async throws -> [ObjectItem] {
+        do {
+            let output = try await client.listObjectsV2(
+                input: ListObjectsV2Input(
+                    bucket: bucket,
+                    delimiter: delimiter,
+                    maxKeys: 1000,
+                    prefix: prefix
+                )
+            )
+
+            let folderItems: [ObjectItem] = (output.commonPrefixes ?? []).compactMap { prefixItem in
+                guard let key = prefixItem.prefix else { return nil }
+                return ObjectItem(key: key, size: 0, lastModified: nil, isFolder: true)
+            }
+
+            let fileItems: [ObjectItem] = (output.contents ?? []).compactMap { item in
+                guard let key = item.key else { return nil }
+                if key == prefix { return nil }
+                return ObjectItem(
+                    key: key,
+                    size: Int64(item.size ?? 0),
+                    lastModified: item.lastModified,
+                    isFolder: key.hasSuffix("/")
+                )
+            }
+
+            return (folderItems + fileItems).sorted { lhs, rhs in
+                if lhs.isFolder != rhs.isFolder {
+                    return lhs.isFolder && !rhs.isFolder
+                }
+                return lhs.key.localizedCaseInsensitiveCompare(rhs.key) == .orderedAscending
+            }
+        } catch {
+            throw map(error)
+        }
+    }
+
+    func downloadObject(bucket: String, key: String, to destinationURL: URL) async throws {
+        do {
+            let output = try await client.getObject(
+                input: GetObjectInput(
+                    bucket: bucket,
+                    key: key
+                )
+            )
+            guard let body = output.body else {
+                throw StorageError.sdkError("Object body was empty.")
+            }
+            guard let data = try await body.readData() else {
+                throw StorageError.sdkError("Unable to read object data.")
+            }
+            try data.write(to: destinationURL, options: .atomic)
+        } catch {
+            if let mapped = error as? StorageError {
+                throw mapped
+            }
+            throw map(error)
+        }
+    }
+
     private func map(_ error: Error) -> StorageError {
         let message = String(describing: error).lowercased()
         if message.contains("invalidaccesskeyid") || message.contains("signaturedoesnotmatch") {

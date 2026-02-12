@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import AppKit
 
 @MainActor
 @Observable
@@ -8,6 +9,12 @@ final class AppStore {
     var selectedAccount: AccountProfile?
     var selectedSidebarItem: SidebarItem?
     var buckets: [BucketItem] = []
+    var selectedBucketName: String?
+    var objectItems: [ObjectItem] = []
+    var currentPrefix = ""
+    var objectSearchQuery = ""
+    var isLoadingBucketObjects = false
+    var loadingBucketName: String?
     var isBusy = false
     var bannerMessage: String?
 
@@ -19,11 +26,11 @@ final class AppStore {
     init(
         accountStore: AccountStore = AccountStore(),
         keychainService: KeychainServicing = KeychainService(),
-        storageClientBuilder: StorageClientBuilding = StorageClientBuilder()
+        storageClientBuilder: StorageClientBuilding? = nil
     ) {
         self.accountStore = accountStore
         self.keychainService = keychainService
-        self.storageClientBuilder = storageClientBuilder
+        self.storageClientBuilder = storageClientBuilder ?? StorageClientBuilder()
         loadAccounts()
     }
 
@@ -91,9 +98,168 @@ final class AppStore {
             logger.error("Refresh failed: \(error.localizedDescription, privacy: .public)")
         }
     }
+
+    func handleSidebarSelectionChange() async {
+        guard let selection = selectedSidebarItem else { return }
+        switch selection {
+        case .account(let id):
+            selectedAccount = accounts.first(where: { $0.id == id })
+            selectedBucketName = nil
+            objectItems = []
+            currentPrefix = ""
+            objectSearchQuery = ""
+            isLoadingBucketObjects = false
+            loadingBucketName = nil
+        case .bucket(let bucketName):
+            selectedBucketName = bucketName
+            currentPrefix = ""
+            objectSearchQuery = ""
+            loadingBucketName = bucketName
+            await loadObjectsForSelectedBucket()
+        }
+    }
+
+    func deleteAccount(_ account: AccountProfile) async {
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            try keychainService.deleteSecret(for: account.secretKeyRef)
+            try accountStore.delete(id: account.id)
+
+            accounts = try accountStore.load()
+            if selectedAccount?.id == account.id {
+                selectedAccount = accounts.first
+            }
+
+            selectedSidebarItem = selectedAccount.map { .account($0.id) }
+            selectedBucketName = nil
+            objectItems = []
+            currentPrefix = ""
+            objectSearchQuery = ""
+
+            if selectedAccount != nil {
+                await refreshBucketsForSelectedAccount()
+            } else {
+                buckets = []
+            }
+
+            bannerMessage = "Account deleted."
+        } catch {
+            bannerMessage = "Failed to delete account."
+            logger.error("Delete account failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func loadObjectsForSelectedBucket() async {
+        guard let account = selectedAccount, let bucketName = selectedBucketName else { return }
+        isBusy = true
+        isLoadingBucketObjects = true
+        loadingBucketName = bucketName
+        defer {
+            isBusy = false
+            isLoadingBucketObjects = false
+            loadingBucketName = nil
+        }
+
+        do {
+            let secret = try keychainService.readSecret(for: account.secretKeyRef)
+            let storageClient = try await storageClientBuilder.makeClient(
+                accessKeyId: account.accessKeyId,
+                secretAccessKey: secret,
+                endpointURL: account.endpointURL,
+                signingRegion: account.signingRegion
+            )
+            objectItems = try await storageClient.listObjects(
+                bucket: bucketName,
+                prefix: currentPrefix.isEmpty ? nil : currentPrefix,
+                delimiter: "/"
+            )
+            bannerMessage = "Loaded \(objectItems.count) items in \(bucketName)."
+        } catch {
+            objectItems = []
+            bannerMessage = StorageErrorMapper.userMessage(for: error)
+            logger.error("Load objects failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func openObjectItem(_ item: ObjectItem) async {
+        if item.isFolder {
+            currentPrefix = item.key
+            await loadObjectsForSelectedBucket()
+            return
+        }
+        await downloadObjectItem(item)
+    }
+
+    func navigateToPrefix(_ prefix: String) async {
+        currentPrefix = prefix
+        await loadObjectsForSelectedBucket()
+    }
+
+    var breadcrumbItems: [BreadcrumbItem] {
+        var result: [BreadcrumbItem] = [BreadcrumbItem(title: "Root", prefix: "")]
+        guard !currentPrefix.isEmpty else { return result }
+
+        let parts = currentPrefix.split(separator: "/").map(String.init)
+        var built = ""
+        for part in parts {
+            built += part + "/"
+            result.append(BreadcrumbItem(title: part, prefix: built))
+        }
+        return result
+    }
+
+    var filteredObjectItems: [ObjectItem] {
+        let trimmed = objectSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return objectItems }
+        return objectItems.filter {
+            $0.displayName.localizedCaseInsensitiveContains(trimmed) ||
+            $0.key.localizedCaseInsensitiveContains(trimmed)
+        }
+    }
+
+    private func downloadObjectItem(_ item: ObjectItem) async {
+        guard let account = selectedAccount, let bucketName = selectedBucketName else { return }
+
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = item.displayName
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+
+        guard panel.runModal() == .OK, let destinationURL = panel.url else { return }
+
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            let secret = try keychainService.readSecret(for: account.secretKeyRef)
+            let storageClient = try await storageClientBuilder.makeClient(
+                accessKeyId: account.accessKeyId,
+                secretAccessKey: secret,
+                endpointURL: account.endpointURL,
+                signingRegion: account.signingRegion
+            )
+            try await storageClient.downloadObject(
+                bucket: bucketName,
+                key: item.key,
+                to: destinationURL
+            )
+            bannerMessage = "Downloaded \(item.displayName)."
+        } catch {
+            bannerMessage = StorageErrorMapper.userMessage(for: error)
+            logger.error("Download failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
 }
 
 enum SidebarItem: Hashable {
     case account(UUID)
     case bucket(String)
+}
+
+struct BreadcrumbItem: Identifiable, Equatable {
+    var id: String { prefix }
+    let title: String
+    let prefix: String
 }
