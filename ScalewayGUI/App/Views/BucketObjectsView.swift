@@ -12,6 +12,11 @@ struct BucketObjectsView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .sheet(item: $store.previewItem, onDismiss: {
+            store.closePreview()
+        }) { item in
+            QuickLookPreviewSheet(item: item)
+        }
     }
 
     private var header: some View {
@@ -36,16 +41,32 @@ struct BucketObjectsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List(store.filteredObjectItems) { item in
-                Button {
-                    Task { @MainActor in
-                        await store.openObjectItem(item)
+                HStack(spacing: 8) {
+                    Button {
+                        Task { @MainActor in
+                            await store.openObjectItem(item)
+                        }
+                    } label: {
+                        ObjectRow(item: item)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
-                } label: {
-                    ObjectRow(item: item)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+                    .buttonStyle(ObjectCellButtonStyle())
+
+                    if !item.isFolder && item.isPreviewSupported {
+                        Button {
+                            Task { @MainActor in
+                                await store.previewObjectItem(item)
+                            }
+                        } label: {
+                            Image(systemName: "eye")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 18, height: 18)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Quick Look Preview")
+                    }
                 }
-                .buttonStyle(ObjectCellButtonStyle())
             }
             .listStyle(.inset)
             .scrollContentBackground(.hidden)

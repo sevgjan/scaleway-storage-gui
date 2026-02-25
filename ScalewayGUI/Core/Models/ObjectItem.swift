@@ -11,4 +11,13 @@ struct ObjectItem: Identifiable, Equatable {
         let trimmed = key.hasSuffix("/") ? String(key.dropLast()) : key
         return trimmed.split(separator: "/").last.map(String.init) ?? key
     }
+
+    var fileExtension: String {
+        URL(fileURLWithPath: displayName).pathExtension.lowercased()
+    }
+
+    var isPreviewSupported: Bool {
+        let supported = Set(["json", "pdf", "jpg", "jpeg", "png", "log", "txt", "usdz"])
+        return supported.contains(fileExtension)
+    }
 }

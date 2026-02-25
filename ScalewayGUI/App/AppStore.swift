@@ -17,6 +17,7 @@ final class AppStore {
     var loadingBucketName: String?
     var isBusy = false
     var bannerMessage: String?
+    var previewItem: PreviewItem?
 
     private let accountStore: AccountStore
     private let keychainService: KeychainServicing
@@ -201,6 +202,56 @@ final class AppStore {
         await downloadObjectItem(item)
     }
 
+    func previewObjectItem(_ item: ObjectItem) async {
+        guard !item.isFolder else { return }
+        guard item.isPreviewSupported else {
+            bannerMessage = "Preview is not supported for this file type."
+            return
+        }
+        // Avoid loading extremely large objects into memory for inline preview.
+        if item.size > 50 * 1024 * 1024 {
+            bannerMessage = "File is too large for preview. Please download it."
+            return
+        }
+        guard let account = selectedAccount, let bucketName = selectedBucketName else { return }
+
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            let secret = try keychainService.readSecret(for: account.secretKeyRef)
+            let storageClient = try await storageClientBuilder.makeClient(
+                accessKeyId: account.accessKeyId,
+                secretAccessKey: secret,
+                endpointURL: account.endpointURL,
+                signingRegion: account.signingRegion
+            )
+
+            let tempDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("ScalewayGUI-QuickLook", isDirectory: true)
+            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+            let fileURL = tempDir
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(item.fileExtension.isEmpty ? "tmp" : item.fileExtension)
+
+            try await storageClient.downloadObject(
+                bucket: bucketName,
+                key: item.key,
+                to: fileURL
+            )
+
+            previewItem = PreviewItem(url: fileURL, title: item.displayName)
+        } catch {
+            bannerMessage = StorageErrorMapper.userMessage(for: error)
+            logger.error("Preview download failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func closePreview() {
+        previewItem = nil
+    }
+
     func navigateToPrefix(_ prefix: String) async {
         currentPrefix = prefix
         await loadObjectsForSelectedBucket()
@@ -271,4 +322,10 @@ struct BreadcrumbItem: Identifiable, Equatable {
     var id: String { prefix }
     let title: String
     let prefix: String
+}
+
+struct PreviewItem: Identifiable {
+    let id = UUID()
+    let url: URL
+    let title: String
 }
