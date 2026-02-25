@@ -53,6 +53,20 @@ struct BucketObjectsView: View {
                     }
                     .buttonStyle(ObjectCellButtonStyle())
 
+                    if item.isFolder {
+                        Button {
+                            Task { @MainActor in
+                                await store.downloadFolderItem(item)
+                            }
+                        } label: {
+                            Image(systemName: "arrow.down.circle")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 18, height: 18)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Download Folder")
+                    }
+
                     if !item.isFolder && item.isPreviewSupported {
                         Button {
                             Task { @MainActor in

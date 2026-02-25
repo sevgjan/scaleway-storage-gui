@@ -279,6 +279,61 @@ final class AppStore {
         }
     }
 
+    func downloadFolderItem(_ item: ObjectItem) async {
+        guard item.isFolder else { return }
+        guard let account = selectedAccount, let bucketName = selectedBucketName else { return }
+
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.prompt = "Download Here"
+        panel.message = "Choose a destination for \"\(item.displayName)\""
+
+        guard panel.runModal() == .OK, let destinationURL = panel.url else { return }
+
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            let secret = try keychainService.readSecret(for: account.secretKeyRef)
+            let storageClient = try await storageClientBuilder.makeClient(
+                accessKeyId: account.accessKeyId,
+                secretAccessKey: secret,
+                endpointURL: account.endpointURL,
+                signingRegion: account.signingRegion
+            )
+
+            let allObjects = try await storageClient.listObjects(
+                bucket: bucketName,
+                prefix: item.key,
+                delimiter: nil
+            )
+            let fileObjects = allObjects.filter { !$0.isFolder }
+
+            for object in fileObjects {
+                let relativePath = String(object.key.dropFirst(item.key.count))
+                let fileURL = destinationURL
+                    .appendingPathComponent(item.displayName)
+                    .appendingPathComponent(relativePath)
+                try FileManager.default.createDirectory(
+                    at: fileURL.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try await storageClient.downloadObject(
+                    bucket: bucketName,
+                    key: object.key,
+                    to: fileURL
+                )
+            }
+
+            bannerMessage = "Downloaded \(fileObjects.count) file(s) from \"\(item.displayName)\"."
+        } catch {
+            bannerMessage = StorageErrorMapper.userMessage(for: error)
+            logger.error("Folder download failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     private func downloadObjectItem(_ item: ObjectItem) async {
         guard let account = selectedAccount, let bucketName = selectedBucketName else { return }
 
