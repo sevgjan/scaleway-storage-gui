@@ -53,6 +53,19 @@ struct BucketObjectsView: View {
                     }
                     .buttonStyle(ObjectCellButtonStyle())
 
+                    if let date = item.lastModified {
+                        Text(date, format: .dateTime.month(.abbreviated).day().year().hour().minute())
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .monospacedDigit()
+                    }
+
+                    if !item.isFolder {
+                        Text(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+
                     if item.isFolder {
                         Button {
                             Task { @MainActor in

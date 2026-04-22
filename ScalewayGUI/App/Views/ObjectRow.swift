@@ -26,12 +26,6 @@ struct ObjectRow: View {
             }
 
             Spacer()
-
-            if !item.isFolder {
-                Text(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(.vertical, 4)
     }
