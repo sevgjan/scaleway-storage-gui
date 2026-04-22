@@ -9,7 +9,7 @@ protocol KeychainServicing {
 }
 
 final class KeychainService: KeychainServicing {
-    private let service = "com.scaleway.gui.credentials"
+    private let service = "com.sevgjan.scalewaygui.credentials"
 
     private var baseQuery: [String: Any] {
         [

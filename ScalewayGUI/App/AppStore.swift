@@ -22,6 +22,7 @@ final class AppStore {
     var editingAccount: AccountProfile?
     var pendingDeleteAccount: AccountProfile?
     var isCreatingAccount = false
+    var uploadProgress: UploadProgress?
 
     private let accountStore: AccountStore
     private let keychainService: KeychainServicing
@@ -455,7 +456,11 @@ final class AppStore {
         }
 
         isBusy = true
-        defer { isBusy = false }
+        uploadProgress = UploadProgress(completed: 0, total: uploads.count, currentName: nil)
+        defer {
+            isBusy = false
+            uploadProgress = nil
+        }
 
         do {
             let secret = try keychainService.readSecret(for: account.secretKeyRef)
@@ -466,13 +471,21 @@ final class AppStore {
                 signingRegion: account.signingRegion
             )
 
-            var uploaded = 0
-            for pending in uploads {
+            for (index, pending) in uploads.enumerated() {
+                uploadProgress = UploadProgress(
+                    completed: index,
+                    total: uploads.count,
+                    currentName: pending.url.lastPathComponent
+                )
                 try await storageClient.uploadObject(bucket: bucketName, key: pending.key, from: pending.url)
-                uploaded += 1
             }
 
-            bannerMessage = "Uploaded \(uploaded) file(s)."
+            uploadProgress = UploadProgress(
+                completed: uploads.count,
+                total: uploads.count,
+                currentName: nil
+            )
+            bannerMessage = "Uploaded \(uploads.count) file(s)."
             await loadObjectsForSelectedBucket()
         } catch {
             bannerMessage = StorageErrorMapper.userMessage(for: error)
@@ -570,4 +583,14 @@ struct PreviewItem: Identifiable {
     let id = UUID()
     let url: URL
     let title: String
+}
+
+struct UploadProgress: Equatable {
+    var completed: Int
+    var total: Int
+    var currentName: String?
+
+    var fraction: Double {
+        total > 0 ? Double(completed) / Double(total) : 0
+    }
 }

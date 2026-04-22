@@ -201,7 +201,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.scaleway.gui;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sevgjan.scalewaygui;
 				PRODUCT_NAME = ScalewayGUI;
 				SDKROOT = macosx;
 			};
@@ -295,7 +295,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.scaleway.gui;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sevgjan.scalewaygui;
 				PRODUCT_NAME = ScalewayGUI;
 				SDKROOT = macosx;
 			};

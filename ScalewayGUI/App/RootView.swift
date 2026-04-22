@@ -16,7 +16,14 @@ struct RootView: View {
             }
         }
         .toolbar { toolbar }
-        .safeAreaInset(edge: .bottom) { toast }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 8) {
+                if let progress = store.uploadProgress {
+                    uploadBanner(progress)
+                }
+                toast
+            }
+        }
         .task(id: store.bannerMessage) {
             guard let banner = store.bannerMessage else { return }
             try? await Task.sleep(for: .seconds(2.5))
@@ -164,6 +171,40 @@ struct RootView: View {
             .disabled(store.selectedBucketName == nil)
             .help("Refresh objects in the current bucket and folder")
         }
+    }
+
+    @ViewBuilder
+    private func uploadBanner(_ progress: UploadProgress) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up.circle")
+                    .foregroundStyle(.tint)
+                Text("Uploading \(progress.completed) of \(progress.total)")
+                    .font(.callout.weight(.semibold))
+                Spacer()
+                Text("\(Int(progress.fraction * 100))%")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            if let name = progress.currentName {
+                Text(name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            ProgressView(value: progress.fraction)
+                .progressViewStyle(.linear)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
+        .padding(.horizontal, 20)
+        .frame(maxWidth: 420)
     }
 
     @ViewBuilder
