@@ -83,16 +83,25 @@ struct RootView: View {
             } header: {
                 HStack {
                     Label("Accounts", systemImage: "person.2.fill")
+                        .font(.title3.weight(.semibold))
+                        .textCase(nil)
                     Spacer()
                     Button {
                         store.isCreatingAccount = true
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.secondary)
+                        Label("Add", systemImage: "plus")
+                            .labelStyle(.titleAndIcon)
+                            .font(.callout.weight(.semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.accentColor)
                     .help("Add Account")
                 }
+                .padding(.vertical, 8)
+                .padding(.trailing, 4)
             }
 
             Section {
@@ -105,6 +114,9 @@ struct RootView: View {
                 }
             } header: {
                 Label("Buckets", systemImage: "externaldrive.fill")
+                    .font(.title3.weight(.semibold))
+                    .textCase(nil)
+                    .padding(.vertical, 8)
             }
         }
         .listStyle(.sidebar)
