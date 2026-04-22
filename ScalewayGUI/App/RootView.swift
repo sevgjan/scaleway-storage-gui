@@ -117,6 +117,8 @@ struct RootView: View {
     private var detail: some View {
         if store.selectedBucketName != nil {
             BucketObjectsView(store: store)
+        } else if store.selectedAccount != nil {
+            AccountHomeView(store: store)
         } else {
             AccountSetupView(store: store)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
