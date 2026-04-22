@@ -9,6 +9,7 @@ import SwiftUI
 struct AccountRow: View {
     let account: AccountProfile
     let isActive: Bool
+    var onEdit: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 10) {
@@ -21,6 +22,12 @@ struct AccountRow: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             }
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Edit Account")
         }
         .padding(.vertical, 2)
     }

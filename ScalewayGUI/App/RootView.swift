@@ -24,6 +24,41 @@ struct RootView: View {
                 store.bannerMessage = nil
             }
         }
+        .sheet(item: $store.editingAccount) { account in
+            AccountEditView(
+                store: store,
+                draft: AccountEditDraft(from: account),
+                onDismiss: { store.editingAccount = nil }
+            )
+        }
+        .sheet(isPresented: $store.isCreatingAccount) {
+            AccountSetupView(
+                store: store,
+                onDismiss: { store.isCreatingAccount = false }
+            )
+            .frame(minWidth: 480, minHeight: 520)
+        }
+        .confirmationDialog(
+            store.pendingDeleteAccount.map { "Delete \"\($0.displayName)\"?" } ?? "",
+            isPresented: Binding(
+                get: { store.pendingDeleteAccount != nil },
+                set: { if !$0 { store.pendingDeleteAccount = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: store.pendingDeleteAccount
+        ) { account in
+            Button("Delete Account", role: .destructive) {
+                Task { @MainActor in
+                    await store.deleteAccount(account)
+                    store.pendingDeleteAccount = nil
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                store.pendingDeleteAccount = nil
+            }
+        } message: { _ in
+            Text("Removes the profile and its Keychain entry. This cannot be undone.")
+        }
     }
 
     private var sidebar: some View {
@@ -32,19 +67,32 @@ struct RootView: View {
                 ForEach(store.accounts) { account in
                     AccountRow(
                         account: account,
-                        isActive: store.selectedAccount?.id == account.id
+                        isActive: store.selectedAccount?.id == account.id,
+                        onEdit: { store.editingAccount = account }
                     )
                         .tag(SidebarItem.account(account.id))
                         .contextMenu {
+                            Button("Edit Account…") {
+                                store.editingAccount = account
+                            }
                             Button("Delete Account", role: .destructive) {
-                                Task { @MainActor in
-                                    await store.deleteAccount(account)
-                                }
+                                store.pendingDeleteAccount = account
                             }
                         }
                 }
             } header: {
-                Label("Accounts", systemImage: "person.2.fill")
+                HStack {
+                    Label("Accounts", systemImage: "person.2.fill")
+                    Spacer()
+                    Button {
+                        store.isCreatingAccount = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Add Account")
+                }
             }
 
             Section {
@@ -83,9 +131,11 @@ struct RootView: View {
                     await store.refreshBucketsForSelectedAccount()
                 }
             } label: {
-                Label("Refresh Buckets", systemImage: "arrow.clockwise")
+                Label("Refresh Buckets", systemImage: "externaldrive.badge.icloud")
+                    .labelStyle(.titleAndIcon)
             }
             .disabled(store.selectedAccount == nil)
+            .help("Refresh the list of buckets for the selected account")
         }
 
         ToolbarItem(placement: .automatic) {
@@ -94,9 +144,11 @@ struct RootView: View {
                     await store.loadObjectsForSelectedBucket()
                 }
             } label: {
-                Label("Refresh Objects", systemImage: "arrow.clockwise.circle")
+                Label("Refresh Objects", systemImage: "arrow.clockwise")
+                    .labelStyle(.titleAndIcon)
             }
             .disabled(store.selectedBucketName == nil)
+            .help("Refresh objects in the current bucket and folder")
         }
     }
 

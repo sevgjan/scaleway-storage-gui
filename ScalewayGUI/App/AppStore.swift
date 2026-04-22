@@ -19,6 +19,9 @@ final class AppStore {
     var bannerMessage: String?
     var previewItem: PreviewItem?
     var isDropTargeted = false
+    var editingAccount: AccountProfile?
+    var pendingDeleteAccount: AccountProfile?
+    var isCreatingAccount = false
 
     private let accountStore: AccountStore
     private let keychainService: KeychainServicing
@@ -53,12 +56,16 @@ final class AppStore {
         }
     }
 
-    func addAccountAndValidate(_ draft: AccountDraft) async {
+    @discardableResult
+    func addAccountAndValidate(_ draft: AccountDraft) async -> Bool {
         isBusy = true
         defer { isBusy = false }
 
+        var createdSecretRef: String?
         do {
             let secretRef = try keychainService.saveSecret(draft.secretKey)
+            createdSecretRef = secretRef
+
             let profile = AccountProfile(
                 displayName: draft.displayName,
                 accessKeyId: draft.accessKeyId,
@@ -67,10 +74,9 @@ final class AppStore {
                 signingRegion: draft.signingRegion
             )
 
-            let secret = try keychainService.readSecret(for: profile.secretKeyRef)
             let storageClient = try await storageClientBuilder.makeClient(
                 accessKeyId: profile.accessKeyId,
-                secretAccessKey: secret,
+                secretAccessKey: draft.secretKey,
                 endpointURL: profile.endpointURL,
                 signingRegion: profile.signingRegion
             )
@@ -81,9 +87,66 @@ final class AppStore {
             selectedAccount = profile
             buckets = bucketList
             bannerMessage = "Connection successful. Found \(bucketList.count) buckets."
+            return true
         } catch {
+            if let ref = createdSecretRef {
+                try? keychainService.deleteSecret(for: ref)
+            }
             bannerMessage = StorageErrorMapper.userMessage(for: error)
             logger.error("Account setup failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    @discardableResult
+    func updateAccount(_ draft: AccountEditDraft) async -> Bool {
+        guard let original = accounts.first(where: { $0.id == draft.id }) else {
+            bannerMessage = "Account not found."
+            return false
+        }
+
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            var updated = original
+            updated.displayName = draft.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.accessKeyId = draft.accessKeyId.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.endpointURL = draft.endpointURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.signingRegion = draft.signingRegion.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let validationSecret: String
+            if draft.isReplacingSecret {
+                validationSecret = draft.newSecretKey
+            } else {
+                validationSecret = try keychainService.readSecret(for: updated.secretKeyRef)
+            }
+
+            let client = try await storageClientBuilder.makeClient(
+                accessKeyId: updated.accessKeyId,
+                secretAccessKey: validationSecret,
+                endpointURL: updated.endpointURL,
+                signingRegion: updated.signingRegion
+            )
+            _ = try await client.listBuckets()
+
+            if draft.isReplacingSecret {
+                try keychainService.updateSecret(for: updated.secretKeyRef, to: draft.newSecretKey)
+            }
+            try accountStore.upsert(updated)
+
+            accounts = try accountStore.load()
+            if selectedAccount?.id == updated.id {
+                selectedAccount = updated
+                await refreshBucketsForSelectedAccount()
+            }
+
+            bannerMessage = "Account \"\(updated.displayName)\" updated."
+            return true
+        } catch {
+            bannerMessage = StorageErrorMapper.userMessage(for: error)
+            logger.error("Account update failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 

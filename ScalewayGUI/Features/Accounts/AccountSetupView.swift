@@ -3,6 +3,7 @@ import SwiftUI
 struct AccountSetupView: View {
     @Bindable var store: AppStore
     @State private var draft = AccountDraft()
+    var onDismiss: (() -> Void)? = nil
 
     private let endpointPresets: [(label: String, endpoint: String, region: String)] = [
         ("NL Amsterdam", "https://s3.nl-ams.scw.cloud", "nl-ams"),
@@ -40,10 +41,17 @@ struct AccountSetupView: View {
             Section {
                 Button("Test Connection and Save") {
                     Task { @MainActor in
-                        await store.addAccountAndValidate(draft)
+                        let ok = await store.addAccountAndValidate(draft)
+                        if ok { onDismiss?() }
                     }
                 }
                 .disabled(!canSubmit || store.isBusy)
+
+                if onDismiss != nil {
+                    Button("Cancel") {
+                        onDismiss?()
+                    }
+                }
             }
         }
         .formStyle(.grouped)

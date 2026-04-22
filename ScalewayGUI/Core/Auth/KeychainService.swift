@@ -4,24 +4,29 @@ import Security
 protocol KeychainServicing {
     func saveSecret(_ secret: String) throws -> String
     func readSecret(for key: String) throws -> String
+    func updateSecret(for key: String, to secret: String) throws
     func deleteSecret(for key: String) throws
 }
 
 final class KeychainService: KeychainServicing {
     private let service = "com.scaleway.gui.credentials"
 
-    func saveSecret(_ secret: String) throws -> String {
-        let key = UUID().uuidString
-        let data = Data(secret.utf8)
-
-        let addQuery: [String: Any] = [
+    private var baseQuery: [String: Any] {
+        [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-            kSecValueData as String: data
         ]
+    }
 
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
+    func saveSecret(_ secret: String) throws -> String {
+        let key = UUID().uuidString
+        var attrs = baseQuery
+        attrs[kSecAttrAccount as String] = key
+        attrs[kSecValueData as String] = Data(secret.utf8)
+        attrs[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        attrs[kSecAttrSynchronizable as String] = false
+
+        let status = SecItemAdd(attrs as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw KeychainError.writeFailed(status)
         }
@@ -30,13 +35,10 @@ final class KeychainService: KeychainServicing {
     }
 
     func readSecret(for key: String) throws -> String {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
+        var query = baseQuery
+        query[kSecAttrAccount as String] = key
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
 
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -52,12 +54,29 @@ final class KeychainService: KeychainServicing {
         return secret
     }
 
-    func deleteSecret(for key: String) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
+    func updateSecret(for key: String, to secret: String) throws {
+        var query = baseQuery
+        query[kSecAttrAccount as String] = key
+
+        let updates: [String: Any] = [
+            kSecValueData as String: Data(secret.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            kSecAttrSynchronizable as String: false,
         ]
+
+        let status = SecItemUpdate(query as CFDictionary, updates as CFDictionary)
+        if status == errSecItemNotFound {
+            _ = try saveSecret(secret)
+            return
+        }
+        guard status == errSecSuccess else {
+            throw KeychainError.writeFailed(status)
+        }
+    }
+
+    func deleteSecret(for key: String) throws {
+        var query = baseQuery
+        query[kSecAttrAccount as String] = key
 
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
