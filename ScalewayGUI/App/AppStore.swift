@@ -404,44 +404,49 @@ final class AppStore {
             return
         }
 
-        var files: [URL] = []
-        var skippedFolders = 0
+        struct PendingUpload {
+            let url: URL
+            let key: String
+        }
+
+        var uploads: [PendingUpload] = []
         for url in sourceURLs {
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
             if isDir.boolValue {
-                let children = (try? FileManager.default.contentsOfDirectory(
+                let folderName = url.lastPathComponent
+                guard let enumerator = FileManager.default.enumerator(
                     at: url,
                     includingPropertiesForKeys: [.isDirectoryKey],
                     options: [.skipsHiddenFiles]
-                )) ?? []
-                for child in children {
-                    var childIsDir: ObjCBool = false
-                    FileManager.default.fileExists(atPath: child.path, isDirectory: &childIsDir)
-                    if childIsDir.boolValue {
-                        skippedFolders += 1
-                    } else {
-                        files.append(child)
-                    }
+                ) else { continue }
+
+                while let fileURL = enumerator.nextObject() as? URL {
+                    let values = try? fileURL.resourceValues(forKeys: [.isDirectoryKey])
+                    if values?.isDirectory == true { continue }
+
+                    let relative = String(fileURL.path.dropFirst(url.path.count))
+                    let normalized = relative.hasPrefix("/") ? String(relative.dropFirst()) : relative
+                    let key = currentPrefix + folderName + "/" + normalized
+                    uploads.append(PendingUpload(url: fileURL, key: key))
                 }
             } else {
-                files.append(url)
+                let key = currentPrefix + url.lastPathComponent
+                uploads.append(PendingUpload(url: url, key: key))
             }
         }
 
-        guard !files.isEmpty else {
-            bannerMessage = skippedFolders > 0
-                ? "No files to upload (skipped \(skippedFolders) subfolder(s))."
-                : "No files to upload."
+        guard !uploads.isEmpty else {
+            bannerMessage = "No files to upload."
             return
         }
 
         let existingKeys = Set(objectItems.filter { !$0.isFolder }.map { $0.key })
-        let conflicts = files.filter { existingKeys.contains(currentPrefix + $0.lastPathComponent) }
+        let conflicts = uploads.filter { existingKeys.contains($0.key) }
         if !conflicts.isEmpty {
             let alert = NSAlert()
             alert.messageText = "Overwrite \(conflicts.count) existing file(s)?"
-            let listed = conflicts.prefix(5).map { $0.lastPathComponent }.joined(separator: "\n")
+            let listed = conflicts.prefix(5).map { $0.url.lastPathComponent }.joined(separator: "\n")
             let more = conflicts.count > 5 ? "\n…and \(conflicts.count - 5) more" : ""
             alert.informativeText = listed + more
             alert.addButton(withTitle: "Overwrite")
@@ -462,18 +467,57 @@ final class AppStore {
             )
 
             var uploaded = 0
-            for url in files {
-                let key = currentPrefix + url.lastPathComponent
-                try await storageClient.uploadObject(bucket: bucketName, key: key, from: url)
+            for pending in uploads {
+                try await storageClient.uploadObject(bucket: bucketName, key: pending.key, from: pending.url)
                 uploaded += 1
             }
 
-            let suffix = skippedFolders > 0 ? " (skipped \(skippedFolders) subfolder(s))" : ""
-            bannerMessage = "Uploaded \(uploaded) file(s)\(suffix)."
+            bannerMessage = "Uploaded \(uploaded) file(s)."
             await loadObjectsForSelectedBucket()
         } catch {
             bannerMessage = StorageErrorMapper.userMessage(for: error)
             logger.error("Upload failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func createFolder(named rawName: String) async {
+        guard let account = selectedAccount, let bucketName = selectedBucketName else {
+            bannerMessage = "Select a bucket first."
+            return
+        }
+        let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleaned = trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard !cleaned.isEmpty else {
+            bannerMessage = "Folder name can't be empty."
+            return
+        }
+
+        let key = currentPrefix + cleaned + "/"
+
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            let secret = try keychainService.readSecret(for: account.secretKeyRef)
+            let storageClient = try await storageClientBuilder.makeClient(
+                accessKeyId: account.accessKeyId,
+                secretAccessKey: secret,
+                endpointURL: account.endpointURL,
+                signingRegion: account.signingRegion
+            )
+
+            let marker = FileManager.default.temporaryDirectory
+                .appendingPathComponent("scaleway-empty-\(UUID().uuidString)")
+            try Data().write(to: marker, options: .atomic)
+            defer { try? FileManager.default.removeItem(at: marker) }
+
+            try await storageClient.uploadObject(bucket: bucketName, key: key, from: marker)
+
+            bannerMessage = "Created folder \"\(cleaned)\"."
+            await loadObjectsForSelectedBucket()
+        } catch {
+            bannerMessage = StorageErrorMapper.userMessage(for: error)
+            logger.error("Create folder failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

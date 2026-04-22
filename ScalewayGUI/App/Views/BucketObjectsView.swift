@@ -5,6 +5,9 @@ import UniformTypeIdentifiers
 struct BucketObjectsView: View {
     @Bindable var store: AppStore
 
+    @State private var showNewFolderAlert = false
+    @State private var newFolderName = ""
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
@@ -14,6 +17,21 @@ struct BucketObjectsView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .alert("New Folder", isPresented: $showNewFolderAlert) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Create") {
+                let name = newFolderName
+                newFolderName = ""
+                Task { @MainActor in
+                    await store.createFolder(named: name)
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                newFolderName = ""
+            }
+        } message: {
+            Text("Create a folder in \(store.currentPrefix.isEmpty ? "the bucket root" : store.currentPrefix).")
+        }
         .onDrop(of: [.fileURL], isTargeted: $store.isDropTargeted) { providers in
             guard store.selectedBucketName != nil else { return false }
             Task { @MainActor in
@@ -65,6 +83,15 @@ struct BucketObjectsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if store.selectedBucketName != nil {
+                Button {
+                    newFolderName = ""
+                    showNewFolderAlert = true
+                } label: {
+                    Label("New Folder", systemImage: "folder.badge.plus")
+                }
+                .buttonStyle(.borderless)
+                .help("Create a new folder at \(store.currentPrefix.isEmpty ? "bucket root" : store.currentPrefix)")
+
                 Button {
                     presentUploadPanel()
                 } label: {
