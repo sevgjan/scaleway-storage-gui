@@ -113,6 +113,24 @@ final class S3StorageClient: StorageClient {
         }
     }
 
+    func uploadObject(bucket: String, key: String, from sourceURL: URL) async throws {
+        do {
+            let data = try Data(contentsOf: sourceURL)
+            _ = try await client.putObject(
+                input: PutObjectInput(
+                    body: .data(data),
+                    bucket: bucket,
+                    key: key
+                )
+            )
+        } catch {
+            if let mapped = error as? StorageError {
+                throw mapped
+            }
+            throw map(error)
+        }
+    }
+
     private func map(_ error: Error) -> StorageError {
         let message = String(describing: error).lowercased()
         if message.contains("invalidaccesskeyid") || message.contains("signaturedoesnotmatch") {

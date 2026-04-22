@@ -18,6 +18,7 @@ final class AppStore {
     var isBusy = false
     var bannerMessage: String?
     var previewItem: PreviewItem?
+    var isDropTargeted = false
 
     private let accountStore: AccountStore
     private let keychainService: KeychainServicing
@@ -331,6 +332,85 @@ final class AppStore {
         } catch {
             bannerMessage = StorageErrorMapper.userMessage(for: error)
             logger.error("Folder download failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func uploadFiles(at sourceURLs: [URL]) async {
+        guard let account = selectedAccount, let bucketName = selectedBucketName else {
+            bannerMessage = "Select a bucket before uploading."
+            return
+        }
+
+        var files: [URL] = []
+        var skippedFolders = 0
+        for url in sourceURLs {
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
+            if isDir.boolValue {
+                let children = (try? FileManager.default.contentsOfDirectory(
+                    at: url,
+                    includingPropertiesForKeys: [.isDirectoryKey],
+                    options: [.skipsHiddenFiles]
+                )) ?? []
+                for child in children {
+                    var childIsDir: ObjCBool = false
+                    FileManager.default.fileExists(atPath: child.path, isDirectory: &childIsDir)
+                    if childIsDir.boolValue {
+                        skippedFolders += 1
+                    } else {
+                        files.append(child)
+                    }
+                }
+            } else {
+                files.append(url)
+            }
+        }
+
+        guard !files.isEmpty else {
+            bannerMessage = skippedFolders > 0
+                ? "No files to upload (skipped \(skippedFolders) subfolder(s))."
+                : "No files to upload."
+            return
+        }
+
+        let existingKeys = Set(objectItems.filter { !$0.isFolder }.map { $0.key })
+        let conflicts = files.filter { existingKeys.contains(currentPrefix + $0.lastPathComponent) }
+        if !conflicts.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "Overwrite \(conflicts.count) existing file(s)?"
+            let listed = conflicts.prefix(5).map { $0.lastPathComponent }.joined(separator: "\n")
+            let more = conflicts.count > 5 ? "\n…and \(conflicts.count - 5) more" : ""
+            alert.informativeText = listed + more
+            alert.addButton(withTitle: "Overwrite")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() != .alertFirstButtonReturn { return }
+        }
+
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            let secret = try keychainService.readSecret(for: account.secretKeyRef)
+            let storageClient = try await storageClientBuilder.makeClient(
+                accessKeyId: account.accessKeyId,
+                secretAccessKey: secret,
+                endpointURL: account.endpointURL,
+                signingRegion: account.signingRegion
+            )
+
+            var uploaded = 0
+            for url in files {
+                let key = currentPrefix + url.lastPathComponent
+                try await storageClient.uploadObject(bucket: bucketName, key: key, from: url)
+                uploaded += 1
+            }
+
+            let suffix = skippedFolders > 0 ? " (skipped \(skippedFolders) subfolder(s))" : ""
+            bannerMessage = "Uploaded \(uploaded) file(s)\(suffix)."
+            await loadObjectsForSelectedBucket()
+        } catch {
+            bannerMessage = StorageErrorMapper.userMessage(for: error)
+            logger.error("Upload failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
