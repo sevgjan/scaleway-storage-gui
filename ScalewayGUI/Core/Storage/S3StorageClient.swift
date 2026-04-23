@@ -1,6 +1,7 @@
 import Foundation
 import AWSS3
 import AWSSDKIdentity
+import SmithyStreams
 
 @MainActor
 final class S3StorageClient: StorageClient {
@@ -115,10 +116,11 @@ final class S3StorageClient: StorageClient {
 
     func uploadObject(bucket: String, key: String, from sourceURL: URL) async throws {
         do {
-            let data = try Data(contentsOf: sourceURL)
+            let fileHandle = try FileHandle(forReadingFrom: sourceURL)
+            defer { try? fileHandle.close() }
             _ = try await client.putObject(
                 input: PutObjectInput(
-                    body: .data(data),
+                    body: .stream(FileStream(fileHandle: fileHandle)),
                     bucket: bucket,
                     key: key
                 )
