@@ -2,6 +2,14 @@ import Foundation
 import Observation
 import AppKit
 
+enum UpdateState: Equatable {
+    case none
+    case available(UpdateInfo)
+    case downloading(progress: Double, version: String)
+    case ready(mountPoint: URL, version: String)
+    case failed(String)
+}
+
 @MainActor
 @Observable
 final class AppStore {
@@ -23,7 +31,10 @@ final class AppStore {
     var pendingDeleteAccount: AccountProfile?
     var isCreatingAccount = false
     var uploadProgress: UploadProgress?
+    var updateState: UpdateState = .none
 
+    private var updater: Updater?
+    private var pendingUpdateInfo: UpdateInfo?
     private let accountStore: AccountStore
     private let keychainService: KeychainServicing
     private let storageClientBuilder: StorageClientBuilding
@@ -565,6 +576,55 @@ final class AppStore {
             bannerMessage = StorageErrorMapper.userMessage(for: error)
             logger.error("Download failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    // MARK: - Updates
+
+    func checkForUpdates() async {
+        guard let info = try? await UpdateChecker.checkForUpdates() else { return }
+        updateState = .available(info)
+    }
+
+    func startUpdateDownload(_ info: UpdateInfo) {
+        guard let dmgURL = info.downloadURL else {
+            NSWorkspace.shared.open(info.releasePageURL)
+            return
+        }
+        let u = Updater()
+        updater = u
+        pendingUpdateInfo = info
+        updateState = .downloading(progress: 0, version: info.version)
+        Task {
+            await u.download(url: dmgURL) { [weak self] progress in
+                self?.updateState = .downloading(progress: progress, version: info.version)
+            } onComplete: { [weak self] mountPoint in
+                self?.updateState = .ready(mountPoint: mountPoint, version: info.version)
+            } onError: { [weak self] msg in
+                self?.updateState = .failed(msg)
+            }
+        }
+    }
+
+    func cancelUpdateDownload() {
+        updater?.cancel()
+        updater = nil
+        if let info = pendingUpdateInfo {
+            updateState = .available(info)
+        } else {
+            updateState = .none
+        }
+    }
+
+    func dismissUpdate() {
+        updater?.cancel()
+        updater = nil
+        pendingUpdateInfo = nil
+        updateState = .none
+    }
+
+    func applyUpdate(mountPoint: URL) {
+        updater?.install(mountPoint: mountPoint)
+        NSApplication.shared.terminate(nil)
     }
 }
 
