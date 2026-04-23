@@ -30,8 +30,13 @@ final class AppStore {
     var editingAccount: AccountProfile?
     var pendingDeleteAccount: AccountProfile?
     var isCreatingAccount = false
-    var uploadProgress: UploadProgress?
+    var uploadBatches: [UploadBatch] = []
     var updateState: UpdateState = .none
+
+    private struct PendingUpload { let url: URL; let key: String }
+    private struct QueuedBatch { let id: UUID; let uploads: [PendingUpload] }
+    private var batchQueue: [QueuedBatch] = []
+    private var isUploadRunning = false
 
     private var updater: Updater?
     private var pendingUpdateInfo: UpdateInfo?
@@ -416,36 +421,38 @@ final class AppStore {
             return
         }
 
-        struct PendingUpload {
-            let url: URL
-            let key: String
-        }
-
         var uploads: [PendingUpload] = []
+        var batchName = "Files"
+
         for url in sourceURLs {
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
             if isDir.boolValue {
                 let folderName = url.lastPathComponent
+                batchName = folderName
                 guard let enumerator = FileManager.default.enumerator(
                     at: url,
                     includingPropertiesForKeys: [.isDirectoryKey],
                     options: [.skipsHiddenFiles]
                 ) else { continue }
-
                 while let fileURL = enumerator.nextObject() as? URL {
                     let values = try? fileURL.resourceValues(forKeys: [.isDirectoryKey])
                     if values?.isDirectory == true { continue }
-
                     let relative = String(fileURL.path.dropFirst(url.path.count))
                     let normalized = relative.hasPrefix("/") ? String(relative.dropFirst()) : relative
-                    let key = currentPrefix + folderName + "/" + normalized
-                    uploads.append(PendingUpload(url: fileURL, key: key))
+                    uploads.append(PendingUpload(url: fileURL, key: currentPrefix + folderName + "/" + normalized))
                 }
             } else {
-                let key = currentPrefix + url.lastPathComponent
-                uploads.append(PendingUpload(url: url, key: key))
+                if sourceURLs.count == 1 { batchName = url.lastPathComponent }
+                uploads.append(PendingUpload(url: url, key: currentPrefix + url.lastPathComponent))
             }
+        }
+
+        if sourceURLs.count > 1 && !sourceURLs.contains(where: {
+            var d: ObjCBool = false
+            return FileManager.default.fileExists(atPath: $0.path, isDirectory: &d) && d.boolValue
+        }) {
+            batchName = "\(uploads.count) files"
         }
 
         guard !uploads.isEmpty else {
@@ -453,8 +460,9 @@ final class AppStore {
             return
         }
 
+        let queuedKeys = Set(batchQueue.flatMap { $0.uploads.map(\.key) })
         let existingKeys = Set(objectItems.filter { !$0.isFolder }.map { $0.key })
-        let conflicts = uploads.filter { existingKeys.contains($0.key) }
+        let conflicts = uploads.filter { existingKeys.contains($0.key) && !queuedKeys.contains($0.key) }
         if !conflicts.isEmpty {
             let alert = NSAlert()
             alert.messageText = "Overwrite \(conflicts.count) existing file(s)?"
@@ -466,11 +474,22 @@ final class AppStore {
             if alert.runModal() != .alertFirstButtonReturn { return }
         }
 
+        let batchID = UUID()
+        batchQueue.append(QueuedBatch(id: batchID, uploads: uploads))
+        uploadBatches.append(UploadBatch(id: batchID, name: batchName, completed: 0, total: uploads.count))
+
+        guard !isUploadRunning else { return }
+        await drainBatchQueue(account: account, bucketName: bucketName)
+    }
+
+    private func drainBatchQueue(account: AccountProfile, bucketName: String) async {
+        isUploadRunning = true
         isBusy = true
-        uploadProgress = UploadProgress(completed: 0, total: uploads.count, currentName: nil)
         defer {
+            isUploadRunning = false
             isBusy = false
-            uploadProgress = nil
+            uploadBatches.removeAll()
+            batchQueue.removeAll()
         }
 
         do {
@@ -482,21 +501,21 @@ final class AppStore {
                 signingRegion: account.signingRegion
             )
 
-            for (index, pending) in uploads.enumerated() {
-                uploadProgress = UploadProgress(
-                    completed: index,
-                    total: uploads.count,
-                    currentName: pending.url.lastPathComponent
-                )
-                try await storageClient.uploadObject(bucket: bucketName, key: pending.key, from: pending.url)
+            var totalUploaded = 0
+            while !batchQueue.isEmpty {
+                let batch = batchQueue.removeFirst()
+                for (index, pending) in batch.uploads.enumerated() {
+                    if let i = uploadBatches.firstIndex(where: { $0.id == batch.id }) {
+                        uploadBatches[i].completed = index
+                        uploadBatches[i].currentName = pending.url.lastPathComponent
+                    }
+                    try await storageClient.uploadObject(bucket: bucketName, key: pending.key, from: pending.url)
+                    totalUploaded += 1
+                }
+                uploadBatches.removeAll { $0.id == batch.id }
             }
 
-            uploadProgress = UploadProgress(
-                completed: uploads.count,
-                total: uploads.count,
-                currentName: nil
-            )
-            bannerMessage = "Uploaded \(uploads.count) file(s)."
+            bannerMessage = "Uploaded \(totalUploaded) file(s)."
             await loadObjectsForSelectedBucket()
         } catch {
             bannerMessage = StorageErrorMapper.userMessage(for: error)
@@ -645,12 +664,13 @@ struct PreviewItem: Identifiable {
     let title: String
 }
 
-struct UploadProgress: Equatable {
+struct UploadBatch: Identifiable, Equatable {
+    let id: UUID
+    let name: String
     var completed: Int
     var total: Int
     var currentName: String?
 
-    var fraction: Double {
-        total > 0 ? Double(completed) / Double(total) : 0
-    }
+    var fraction: Double { total > 0 ? Double(completed) / Double(total) : 0 }
+    var isQueued: Bool { completed == 0 && currentName == nil }
 }

@@ -21,8 +21,8 @@ struct RootView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
-                if let progress = store.uploadProgress {
-                    uploadBanner(progress)
+                ForEach(store.uploadBatches) { batch in
+                    uploadBanner(batch)
                 }
                 updateBanner
                 toast
@@ -188,26 +188,26 @@ struct RootView: View {
     }
 
     @ViewBuilder
-    private func uploadBanner(_ progress: UploadProgress) -> some View {
+    private func uploadBanner(_ batch: UploadBatch) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.up.circle")
                     .foregroundStyle(.tint)
-                Text("Uploading \(progress.completed) of \(progress.total)")
+                Text(batch.isQueued ? "Queued — \"\(batch.name)\"" : "\"\(batch.name)\" — \(batch.completed) of \(batch.total)")
                     .font(.callout.weight(.semibold))
                 Spacer()
-                Text("\(Int(progress.fraction * 100))%")
+                Text("\(Int(batch.fraction * 100))%")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
-            if let name = progress.currentName {
+            if let name = batch.currentName {
                 Text(name)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            ProgressView(value: progress.fraction)
+            ProgressView(value: batch.fraction)
                 .progressViewStyle(.linear)
         }
         .padding(.horizontal, 14)
