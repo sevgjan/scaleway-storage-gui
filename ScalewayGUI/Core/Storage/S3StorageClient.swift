@@ -55,30 +55,39 @@ final class S3StorageClient: StorageClient {
 
     func listObjects(bucket: String, prefix: String?, delimiter: String?) async throws -> [ObjectItem] {
         do {
-            let output = try await client.listObjectsV2(
-                input: ListObjectsV2Input(
-                    bucket: bucket,
-                    delimiter: delimiter,
-                    maxKeys: 1000,
-                    prefix: prefix
-                )
-            )
+            var folderItems: [ObjectItem] = []
+            var fileItems: [ObjectItem] = []
+            var continuationToken: String?
 
-            let folderItems: [ObjectItem] = (output.commonPrefixes ?? []).compactMap { prefixItem in
-                guard let key = prefixItem.prefix else { return nil }
-                return ObjectItem(key: key, size: 0, lastModified: nil, isFolder: true)
-            }
-
-            let fileItems: [ObjectItem] = (output.contents ?? []).compactMap { item in
-                guard let key = item.key else { return nil }
-                if key == prefix { return nil }
-                return ObjectItem(
-                    key: key,
-                    size: Int64(item.size ?? 0),
-                    lastModified: item.lastModified,
-                    isFolder: key.hasSuffix("/")
+            repeat {
+                let output = try await client.listObjectsV2(
+                    input: ListObjectsV2Input(
+                        bucket: bucket,
+                        continuationToken: continuationToken,
+                        delimiter: delimiter,
+                        maxKeys: 1000,
+                        prefix: prefix
+                    )
                 )
-            }
+
+                folderItems += (output.commonPrefixes ?? []).compactMap { prefixItem in
+                    guard let key = prefixItem.prefix else { return nil }
+                    return ObjectItem(key: key, size: 0, lastModified: nil, isFolder: true)
+                }
+
+                fileItems += (output.contents ?? []).compactMap { item in
+                    guard let key = item.key else { return nil }
+                    if key == prefix { return nil }
+                    return ObjectItem(
+                        key: key,
+                        size: Int64(item.size ?? 0),
+                        lastModified: item.lastModified,
+                        isFolder: key.hasSuffix("/")
+                    )
+                }
+
+                continuationToken = (output.isTruncated == true) ? output.nextContinuationToken : nil
+            } while continuationToken != nil
 
             return (folderItems + fileItems).sorted { lhs, rhs in
                 if lhs.isFolder != rhs.isFolder {
