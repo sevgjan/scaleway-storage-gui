@@ -25,9 +25,16 @@ command -v create-dmg >/dev/null || {
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
+# Optional: reuse an existing SourcePackages dir to skip re-fetching dependencies.
+PACKAGE_ARGS=()
+if [[ -n "${SOURCE_PACKAGES_DIR:-}" ]]; then
+  PACKAGE_ARGS=(-clonedSourcePackagesDirPath "$SOURCE_PACKAGES_DIR" -disableAutomaticPackageResolution -skipPackageUpdates)
+fi
+
 xcodebuild \
   -project "$PROJECT_DIR/${APP_NAME}.xcodeproj" \
   -scheme "$APP_NAME" \
+  ${PACKAGE_ARGS[@]+"${PACKAGE_ARGS[@]}"} \
   -configuration Release \
   -destination 'generic/platform=macOS' \
   -archivePath "$BUILD_DIR/${APP_NAME}.xcarchive" \

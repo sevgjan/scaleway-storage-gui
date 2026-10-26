@@ -57,37 +57,54 @@ final class S3StorageClient: StorageClient {
         do {
             var folderItems: [ObjectItem] = []
             var fileItems: [ObjectItem] = []
-            var continuationToken: String?
+            var seenKeys: Set<String> = []
+            var startAfter: String?
 
-            repeat {
+            // Paginate with startAfter rather than continuationToken: Scaleway returns
+            // a 500 InternalError for continuation-token (and V1 marker) requests
+            // combined with a delimiter once a page ends on a common prefix.
+            // startAfter re-returns that boundary prefix, so results are de-duplicated.
+            while true {
                 let output = try await client.listObjectsV2(
                     input: ListObjectsV2Input(
                         bucket: bucket,
-                        continuationToken: continuationToken,
                         delimiter: delimiter,
                         maxKeys: 1000,
-                        prefix: prefix
+                        prefix: prefix,
+                        startAfter: startAfter
                     )
                 )
 
-                folderItems += (output.commonPrefixes ?? []).compactMap { prefixItem in
-                    guard let key = prefixItem.prefix else { return nil }
-                    return ObjectItem(key: key, size: 0, lastModified: nil, isFolder: true)
+                let pagePrefixes = (output.commonPrefixes ?? []).compactMap(\.prefix)
+                let pageObjects = output.contents ?? []
+                var addedNewItem = false
+
+                for key in pagePrefixes where seenKeys.insert(key).inserted {
+                    addedNewItem = true
+                    folderItems.append(ObjectItem(key: key, size: 0, lastModified: nil, isFolder: true))
                 }
 
-                fileItems += (output.contents ?? []).compactMap { item in
-                    guard let key = item.key else { return nil }
-                    if key == prefix { return nil }
-                    return ObjectItem(
+                for item in pageObjects {
+                    guard let key = item.key, seenKeys.insert(key).inserted else { continue }
+                    addedNewItem = true
+                    if key == prefix { continue }
+                    fileItems.append(ObjectItem(
                         key: key,
                         size: Int64(item.size ?? 0),
                         lastModified: item.lastModified,
                         isFolder: key.hasSuffix("/")
-                    )
+                    ))
                 }
 
-                continuationToken = (output.isTruncated == true) ? output.nextContinuationToken : nil
-            } while continuationToken != nil
+                // Keys and prefixes are returned in lexicographic (UTF-8 binary) order,
+                // so the greatest of the two page tails is where the next page starts.
+                let pageTail = [pagePrefixes.last, pageObjects.last?.key]
+                    .compactMap { $0 }
+                    .max { Array($0.utf8).lexicographicallyPrecedes(Array($1.utf8)) }
+
+                guard output.isTruncated == true, addedNewItem, let pageTail else { break }
+                startAfter = pageTail
+            }
 
             return (folderItems + fileItems).sorted { lhs, rhs in
                 if lhs.isFolder != rhs.isFolder {
